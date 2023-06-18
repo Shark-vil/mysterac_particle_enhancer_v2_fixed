@@ -59,35 +59,19 @@ local function ExplosionTrackingEntity(tbl, ent, pos, invoke)
 	tbl[ent] = nil
 end
 
-local function CheckForGrenades()
-	for ent, pos in pairs(TRACKING_EXPLOSIVES_GRENADE) do
-		if not TrackingEntity(ent, TRACKING_EXPLOSIVES_GRENADE) then
-			ExplosionTrackingEntity(TRACKING_EXPLOSIVES_GRENADE, ent, pos, CreateGrenadeExplosionEffect)
-		end
-	end
-end
-
-local function CheckForRPGS()
-	for ent, pos in pairs(TRACKING_EXPLOSIVES_RPGS) do
-		if not TrackingEntity(ent, TRACKING_EXPLOSIVES_RPGS) then
-			ExplosionTrackingEntity(TRACKING_EXPLOSIVES_RPGS, ent, pos, CreateRPGExplosionEffect)
-		end
-	end
-end
-
-local function CheckForAR2Grenades()
-	for ent, pos in pairs(TRACKING_EXPLOSIVES_AR2) do
-		if not TrackingEntity(ent, TRACKING_EXPLOSIVES_AR2) then
-			ExplosionTrackingEntity(TRACKING_EXPLOSIVES_AR2, ent, pos, CreateAR2ExplosionEffect)
+local function CheckExplosionEntities(tbl, invoke)
+	for ent, pos in pairs(tbl) do
+		if not TrackingEntity(ent, tbl) then
+			ExplosionTrackingEntity(tbl, ent, pos, invoke)
 		end
 	end
 end
 
 if not file.Exists('autorun/gexplo_autorun.lua', 'LUA') then
 	hook.Add('Think', 'MysterAC_ParticleEntityChecker', function()
-		CheckForGrenades()
-		CheckForRPGS()
-		CheckForAR2Grenades()
+		CheckExplosionEntities(TRACKING_EXPLOSIVES_GRENADE, CreateGrenadeExplosionEffect)
+		CheckExplosionEntities(TRACKING_EXPLOSIVES_RPGS, CreateRPGExplosionEffect)
+		CheckExplosionEntities(TRACKING_EXPLOSIVES_AR2, CreateAR2ExplosionEffect)
 	end)
 
 	hook.Add('OnEntityCreated', 'MysterAC_TrackingEntityCreated', function(ent)
