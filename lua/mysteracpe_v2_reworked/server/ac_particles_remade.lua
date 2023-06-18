@@ -7,7 +7,6 @@ local Vector = Vector
 local Angle = Angle
 local pairs = pairs
 local math_random = math.random
-local CurTime = CurTime
 local player_GetCount = player.GetCount
 --
 local TRACKING_EXPLOSIVES_GRENADE = {}
@@ -22,8 +21,7 @@ local grenade_ar2_explosion_air_particle = 'AC_grenade_ar2_explosion_air'
 local vector_0_0_60 = Vector(0, 0, 60)
 local MASK_SOLID_BRUSHONLY = MASK_SOLID_BRUSHONLY
 --
-
-local function CreateParticleEffect(pos, elapsed_time, particle, particle_in_air)
+local function CreateParticleEffect(pos, particle, particle_in_air)
 	local tr = util_TraceLine({
 		start = pos,
 		endpos = pos - vector_0_0_60,
@@ -37,55 +35,50 @@ local function CreateParticleEffect(pos, elapsed_time, particle, particle_in_air
 	end
 end
 
-local function CreateGrenadeExplosionEffect(pos, elapsed_time, particle, particle_in_air)
-	CreateParticleEffect(pos, elapsed_time, grenade_explosion_particle, grenade_explosion_air_particle)
+local function CreateGrenadeExplosionEffect(pos)
+	CreateParticleEffect(pos, grenade_explosion_particle, grenade_explosion_air_particle)
 end
 
-local function CreateRPGExplosionEffect(pos, elapsed_time)
-	CreateParticleEffect(pos, elapsed_time, rpg_explosion_particle, rpg_explosion_air_particle)
+local function CreateRPGExplosionEffect(pos)
+	CreateParticleEffect(pos, rpg_explosion_particle, rpg_explosion_air_particle)
 end
 
-local function CreateAR2ExplosionEffect(pos, elapsed_time)
-	CreateParticleEffect(pos, elapsed_time, grenade_ar2_explosion_particle, grenade_ar2_explosion_air_particle)
+local function CreateAR2ExplosionEffect(pos)
+	CreateParticleEffect(pos, grenade_ar2_explosion_particle, grenade_ar2_explosion_air_particle)
 end
 
 local function TrackingEntity(ent, tbl)
 	if not IsValid(ent) then return false end
-	if not tbl[ent] then
-		tbl[ent] = {ent:GetPos(), CurTime()}
-	else
-		tbl[ent][1] = ent:GetPos()
-	end
+	tbl[ent] = ent:GetPos()
 	return true
 end
 
-local function ExplosionTrackingEntity(tbl, ent, data, invoke)
+local function ExplosionTrackingEntity(tbl, ent, pos, invoke)
 	if IsValid(ent) then return end
-	local pos, elapsed_time = data[1], CurTime() - data[2]
-	invoke(pos, elapsed_time)
+	invoke(pos)
 	tbl[ent] = nil
 end
 
 local function CheckForGrenades()
-	for ent, data in pairs(TRACKING_EXPLOSIVES_GRENADE) do
+	for ent, pos in pairs(TRACKING_EXPLOSIVES_GRENADE) do
 		if not TrackingEntity(ent, TRACKING_EXPLOSIVES_GRENADE) then
-			ExplosionTrackingEntity(TRACKING_EXPLOSIVES_GRENADE, ent, data, CreateGrenadeExplosionEffect)
+			ExplosionTrackingEntity(TRACKING_EXPLOSIVES_GRENADE, ent, pos, CreateGrenadeExplosionEffect)
 		end
 	end
 end
 
 local function CheckForRPGS()
-	for ent, data in pairs(TRACKING_EXPLOSIVES_RPGS) do
+	for ent, pos in pairs(TRACKING_EXPLOSIVES_RPGS) do
 		if not TrackingEntity(ent, TRACKING_EXPLOSIVES_RPGS) then
-			ExplosionTrackingEntity(TRACKING_EXPLOSIVES_RPGS, ent, data, CreateRPGExplosionEffect)
+			ExplosionTrackingEntity(TRACKING_EXPLOSIVES_RPGS, ent, pos, CreateRPGExplosionEffect)
 		end
 	end
 end
 
 local function CheckForAR2Grenades()
-	for ent, data in pairs(TRACKING_EXPLOSIVES_AR2) do
+	for ent, pos in pairs(TRACKING_EXPLOSIVES_AR2) do
 		if not TrackingEntity(ent, TRACKING_EXPLOSIVES_AR2) then
-			ExplosionTrackingEntity(TRACKING_EXPLOSIVES_AR2, ent, data, CreateAR2ExplosionEffect)
+			ExplosionTrackingEntity(TRACKING_EXPLOSIVES_AR2, ent, pos, CreateAR2ExplosionEffect)
 		end
 	end
 end
@@ -109,17 +102,17 @@ if not file.Exists('autorun/gexplo_autorun.lua', 'LUA') then
 			TrackingEntity(ent, TRACKING_EXPLOSIVES_AR2)
 		end
 	end)
-
-	hook.Add('PlayerInitialSpawn', 'MysterAC_ParticleEnhancer_InitNewImpactEffectCvar', function(ply)
-		local hook_name = 'MysterAC_ParticleEnhancer_SetupMovePlayer_' .. ply:UserID()
-		hook.Add('SetupMove', hook_name, function(mv_ply, mv, cmd)
-			if not IsValid(ply) then
-				hook.Remove('SetupMove', hook_name)
-			elseif IsValid(mv_ply) and ply == mv_ply and not cmd:IsForced() then
-				hook.Remove('SetupMove', hook_name)
-				net.Start('MysterAC_Particle_PlayerSpawnInit')
-				net.Send(mv_ply)
-			end
-		end)
-	end)
 end
+
+hook.Add('PlayerInitialSpawn', 'MysterAC_ParticleEnhancer_InitNewImpactEffectCvar', function(ply)
+	local hook_name = 'MysterAC_ParticleEnhancer_SetupMovePlayer_' .. ply:UserID()
+	hook.Add('SetupMove', hook_name, function(mv_ply, mv, cmd)
+		if not IsValid(ply) then
+			hook.Remove('SetupMove', hook_name)
+		elseif IsValid(mv_ply) and ply == mv_ply and not cmd:IsForced() then
+			hook.Remove('SetupMove', hook_name)
+			net.Start('MysterAC_Particle_PlayerSpawnInit')
+			net.Send(mv_ply)
+		end
+	end)
+end)
